@@ -1,0 +1,118 @@
+<div class="page-container">    
+    <div class="header">
+        <div class="header-content">
+            <div class="title-section">
+                <h1>Panel de control</h1>
+                <p>Visualización de los datos del panel</p>
+            </div>
+            <div class="filter-section">
+                <label for="filtro-select" class="filter-label">Filtrar por:</label>
+                <select 
+                    id="filtro-select"
+                    [(ngModel)]="filtro" 
+                    (ngModelChange)="onFiltroChange()"
+                    class="select-filtro">
+                    <option value="cantidad exitosa">Cantidad exitosa</option>
+                    <option value="cantidad no exitosa">Cantidad no exitosa</option>
+                </select>
+            </div>
+        </div>
+    </div>
+   
+    <!-- gráfico de barras -->
+    <div class="chart-container">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-header-top">
+                    <h2>{{ filtro === 'cantidad exitosa' ? 'Cantidad exitosa' : 'Cantidad no exitosa' }}</h2>
+                    <span class="chart-badge" [ngClass]="{'badge-success': filtro === 'cantidad exitosa', 'badge-error': filtro === 'cantidad no exitosa'}">
+                        {{ filtro === 'cantidad exitosa' ? '✓ Exitoso' : '✗ No exitoso' }}
+                    </span>
+                </div>
+                <div class="filter-date-container">
+                    <div class="date-input-group">
+                        <label for="fecha-inicio-bar" class="date-label">
+                            <span class="date-icon">📅</span>
+                            <span>Fecha inicio</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="fecha-inicio-bar" 
+                            [(ngModel)]="fechaInicio" 
+                            class="date-input"
+                            (change)="onFechaChange()" />
+                    </div>
+                    <div class="date-separator">→</div>
+                    <div class="date-input-group">
+                        <label for="fecha-fin-bar" class="date-label">
+                            <span class="date-icon">📅</span>
+                            <span>Fecha fin</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="fecha-fin-bar" 
+                            [(ngModel)]="fechaFin" 
+                            class="date-input"
+                            (change)="onFechaChange()" />
+                    </div>
+                </div>
+            </div>
+            <div class="chart-content">
+                <p-chart type="bar" [data]="data" [options]="options" class="chart" />
+            </div>
+        </div>
+
+    </div>
+
+    <!-- gráfico de línea - Ideas registradas y finalizadas por mes -->
+    <div class="chart-line-container">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-header-top">
+                    <h2>Registro de Ideas</h2>
+                    <div class="chart-legend-info">
+                        <span class="legend-item">
+                            <span class="legend-color legend-primary"></span>
+                            <span>Ideas Registradas</span>
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color legend-success"></span>
+                            <span>Ideas Finalizadas</span>
+                        </span>
+                    </div>
+                </div>
+                <div class="filter-date-container">
+                    <div class="date-input-group">
+                        <label for="fecha-inicio-line" class="date-label">
+                            <span class="date-icon">📅</span>
+                            <span>Fecha inicio</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="fecha-inicio-line" 
+                            [(ngModel)]="fechaInicio" 
+                            class="date-input"
+                            (change)="onFechaChange()" />
+                    </div>
+                    <div class="date-separator">→</div>
+                    <div class="date-input-group">
+                        <label for="fecha-fin-line" class="date-label">
+                            <span class="date-icon">📅</span>
+                            <span>Fecha fin</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="fecha-fin-line" 
+                            [(ngModel)]="fechaFin" 
+                            class="date-input"
+                            (change)="onFechaChange()" />
+                    </div>
+                </div>
+            </div>
+            <div class="chart-content">
+                <p-chart type="line" [data]="lineData" [options]="lineOptions" class="chart-line" />
+            </div>
+        </div>
+    </div>
+</div>
+

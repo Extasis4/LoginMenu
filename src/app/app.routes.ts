@@ -4,6 +4,7 @@ import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 import { GestionContenidoComponent } from './pages/gestion-contenido/gestion-contenido.component';
 import { GestionAvanceComponent } from './pages/gestion-avance/gestion-avance.component';
 import { LoginComponent } from './auth/login/login.component';
+import { ApiTestComponent } from './components/api-test/api-test.component';
 import { loginGuard } from './auth/login.guard';
 import { authGuard } from './auth/auth.guard';
 
@@ -32,6 +33,10 @@ export const routes: Routes = [
     path: 'gestion-avance', 
     component: GestionAvanceComponent,
     canActivate: [authGuard]
+  },
+  { 
+    path: 'api-test', 
+    component: ApiTestComponent
   },
   { 
     path: '', 

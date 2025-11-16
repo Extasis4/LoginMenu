@@ -1,0 +1,317 @@
+<div class="usuarios-container">
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Gestión de Usuarios</h1>
+    <p class="page-description">Visualiza y filtra usuarios por rubro, nombre o idea de negocio</p>
+    <div class="debug-info" *ngIf="users.length === 0 && !loading">
+      <p><strong>Estado:</strong> {{ users.length }} usuarios cargados</p>
+      <p><strong>API URL:</strong> https://api.childfound.online/api/rubros/39d39663-09e7-4b8b-aae9-dca9457e37de/users</p>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="filters-card">
+      <h3>Filtros de búsqueda</h3>
+      
+      <div class="filters-grid">
+        <!-- Filtro por Rubro -->
+        <div class="filter-group">
+          <label for="rubroFilter">Filtrar por Rubro</label>
+          <p-dropdown 
+            id="rubroFilter"
+            [options]="rubros" 
+            [(ngModel)]="selectedRubro" 
+            optionLabel="name" 
+            optionValue="id"
+            placeholder="Seleccionar rubro"
+            [showClear]="false"
+            (onChange)="onRubroChange()"
+            styleClass="w-full rubro-dropdown"
+            [style]="{'min-width': '250px'}"
+          ></p-dropdown>
+        </div>
+
+        <!-- Búsqueda por Nombre -->
+        <div class="filter-group">
+          <label for="nameSearch">Buscar por Nombre</label>
+          <span class="p-input-icon-left w-full">
+            <i class="pi pi-search"></i>
+            <input 
+              id="nameSearch"
+              type="text" 
+              pInputText 
+              placeholder="Nombre del usuario..."
+              [(ngModel)]="searchName"
+              (input)="onSearchChange()"
+              class="w-full"
+            />
+          </span>
+        </div>
+
+        <!-- Búsqueda por Idea de Negocio -->
+        <div class="filter-group">
+          <label for="businessSearch">Buscar por Idea de Negocio</label>
+          <span class="p-input-icon-left w-full">
+            <i class="pi pi-briefcase"></i>
+            <input 
+              id="businessSearch"
+              type="text" 
+              pInputText 
+              placeholder="Nombre del negocio..."
+              [(ngModel)]="searchBusiness"
+              (input)="onSearchChange()"
+              class="w-full"
+            />
+          </span>
+        </div>
+      </div>
+
+      <!-- Botones de acción -->
+      <div class="filter-actions">
+        <p-button 
+          label="Limpiar Filtros" 
+          icon="pi pi-filter-slash"
+          severity="secondary"
+          (onClick)="clearFilters()"
+        ></p-button>
+        <p-button 
+          label="Buscar" 
+          icon="pi pi-search"
+          (onClick)="searchUsers()"
+          [loading]="loading"
+        ></p-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="stats-section" *ngIf="users.length > 0">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="stat-content">
+          <h4>{{ users.length }}</h4>
+          <p>Usuarios encontrados</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="pi pi-briefcase"></i>
+        </div>
+        <div class="stat-content">
+          <h4>{{ getTotalBusinesses() }}</h4>
+          <p>Total de negocios</p>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">
+          <i class="pi pi-check-circle"></i>
+        </div>
+        <div class="stat-content">
+          <h4>{{ getActiveBusinesses() }}</h4>
+          <p>Negocios activos</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de Usuarios -->
+  <div class="users-section">
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-container">
+      <p-progressSpinner></p-progressSpinner>
+      <p>Cargando usuarios...</p>
+    </div>
+
+    <!-- Sin resultados -->
+    <div *ngIf="!loading && users.length === 0" class="no-results">
+      <i class="pi pi-info-circle"></i>
+      <h3>No se encontraron usuarios</h3>
+      <p>Intenta ajustar los filtros de búsqueda</p>
+    </div>
+
+    <!-- Grid de usuarios -->
+    <div *ngIf="!loading && users.length > 0" class="users-grid">
+      <div *ngFor="let user of users" class="user-card">
+        <!-- Header del usuario -->
+        <div class="user-header">
+          <div class="user-avatar">
+            <i class="pi pi-user"></i>
+          </div>
+          <div class="user-info">
+            <h4>{{ user.name }}</h4>
+            <p class="user-email">{{ user.email }}</p>
+            <p-tag 
+              [value]="user.roles" 
+              [severity]="getRoleSeverity(user.roles)"
+              class="user-role"
+            ></p-tag>
+          </div>
+        </div>
+
+        <!-- Información personal -->
+        <div class="user-details">
+          <div class="detail-item" *ngIf="user.age">
+            <i class="pi pi-calendar"></i>
+            <span>{{ user.age }} años</span>
+          </div>
+          <div class="detail-item" *ngIf="user.city">
+            <i class="pi pi-map-marker"></i>
+            <span>{{ user.city }}</span>
+          </div>
+          <div class="detail-item">
+            <i class="pi pi-tag"></i>
+            <span>{{ getRubroName(user.rubroId) }}</span>
+          </div>
+        </div>
+
+        <!-- Negocios del usuario -->
+        <div class="user-businesses">
+          <div class="businesses-header">
+            <h5>
+              <i class="pi pi-briefcase"></i>
+              Ideas de Negocio ({{ user.businesses.length }})
+            </h5>
+          </div>
+          
+          <div *ngIf="user.businesses.length === 0" class="no-businesses">
+            <p>Sin ideas de negocio registradas</p>
+          </div>
+          
+          <div *ngFor="let business of user.businesses" class="business-item">
+            <div class="business-header">
+              <span class="business-name">{{ business.name }}</span>
+              <p-tag 
+                [value]="getBusinessStatusLabel(business.status)" 
+                [severity]="getBusinessStatusSeverity(business.status)"
+                class="business-status"
+              ></p-tag>
+            </div>
+            
+            <div class="business-details">
+              <div class="business-meta">
+                <small>
+                  <i class="pi pi-calendar"></i>
+                  Creado: {{ business.createdAt | date:'dd/MM/yyyy' }}
+                </small>
+                <small *ngIf="business.finalizedAt">
+                  <i class="pi pi-check"></i>
+                  Finalizado: {{ business.finalizedAt | date:'dd/MM/yyyy' }}
+                </small>
+              </div>
+              
+              <div class="business-success" *ngIf="business.status === 'completed'">
+                <i class="pi" [class]="business.isSuccessful ? 'pi-check-circle success' : 'pi-times-circle failed'"></i>
+                <span>{{ business.isSuccessful ? 'Exitoso' : 'No exitoso' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="user-actions">
+          <p-button 
+            icon="pi pi-eye" 
+            severity="info"
+            size="small"
+            (onClick)="viewUserDetails(user)"
+            pTooltip="Ver detalles completos"
+          ></p-button>
+          <p-button 
+            icon="pi pi-envelope" 
+            severity="secondary"
+            size="small"
+            (onClick)="contactUser(user)"
+            pTooltip="Contactar usuario"
+          ></p-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination-section" *ngIf="!loading && users.length > 0">
+    <p-paginator 
+      [rows]="pageSize"
+      [totalRecords]="totalUsers"
+      [first]="(currentPage - 1) * pageSize"
+      (onPageChange)="onPageChange($event)"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} usuarios"
+    ></p-paginator>
+  </div>
+</div>
+
+<!-- Dialog para detalles del usuario -->
+<p-dialog 
+  header="Detalles del Usuario" 
+  [(visible)]="showUserDialog"
+  [style]="{width: '700px'}"
+  [modal]="true"
+  [closable]="true"
+>
+  <div *ngIf="selectedUser" class="user-dialog-content">
+    <div class="dialog-user-header">
+      <div class="dialog-avatar">
+        <i class="pi pi-user"></i>
+      </div>
+      <div class="dialog-user-info">
+        <h3>{{ selectedUser.name }}</h3>
+        <p>{{ selectedUser.email }}</p>
+        <p-tag [value]="selectedUser.roles" [severity]="getRoleSeverity(selectedUser.roles)"></p-tag>
+      </div>
+    </div>
+
+    <div class="dialog-sections">
+      <div class="dialog-section">
+        <h4>Información Personal</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <strong>Edad:</strong> {{ selectedUser.age || 'No especificada' }}
+          </div>
+          <div class="info-item">
+            <strong>Ciudad:</strong> {{ selectedUser.city || 'No especificada' }}
+          </div>
+          <div class="info-item">
+            <strong>Rubro:</strong> {{ getRubroName(selectedUser.rubroId) }}
+          </div>
+          <div class="info-item">
+            <strong>ID de Usuario:</strong> {{ selectedUser.id }}
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-section">
+        <h4>Ideas de Negocio ({{ selectedUser.businesses.length }})</h4>
+        <div *ngFor="let business of selectedUser.businesses" class="dialog-business-item">
+          <div class="dialog-business-header">
+            <h5>{{ business.name }}</h5>
+            <p-tag 
+              [value]="getBusinessStatusLabel(business.status)" 
+              [severity]="getBusinessStatusSeverity(business.status)"
+            ></p-tag>
+          </div>
+          <div class="dialog-business-details">
+            <p><strong>Estado:</strong> {{ getBusinessStatusLabel(business.status) }}</p>
+            <p><strong>Creado:</strong> {{ business.createdAt | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="business.finalizedAt"><strong>Finalizado:</strong> {{ business.finalizedAt | date:'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="business.status === 'completed'">
+              <strong>Resultado:</strong> 
+              <span [class]="business.isSuccessful ? 'success-text' : 'failed-text'">
+                {{ business.isSuccessful ? 'Exitoso' : 'No exitoso' }}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</p-dialog>
+
+<!-- Toast para mensajes -->
+<p-toast></p-toast>
