@@ -1,0 +1,251 @@
+<div class="gestion-contenido-container">
+  <div class="header">
+    <h1>Gestionar Contenido del Curso</h1>
+    <p class="subtitle">Sube y organiza videos y documentos para el plan de estudios de tu incubadora.</p>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- Sección izquierda: Subir Nuevo Contenido -->
+    <div class="upload-section">
+      <h2>Subir Nuevo Contenido</h2>
+      
+      <!-- Área de drag & drop -->
+      <div 
+        class="upload-area"
+        [class.dragging]="isDragging"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="abrirSelectorArchivos()">
+        
+        <div class="upload-content" *ngIf="!formData.archivo">
+          <div class="upload-icon">☁️</div>
+          <p class="upload-text">
+            Haz clic para subir o arrastra y suelta<br>
+            <span class="upload-hint">Video o PDF (máx. 500MB)</span>
+          </p>
+        </div>
+        
+        <div class="file-selected" *ngIf="formData.archivo">
+          <div class="file-info">
+            <span class="file-icon">{{ obtenerIconoTipo(formData.archivo.type.startsWith('video/') ? 'video' : 'pdf') }}</span>
+            <div class="file-details">
+              <p class="file-name">{{ formData.archivo.name }}</p>
+              <p class="file-size">{{ formatearTamanio(formData.archivo.size) }}</p>
+            </div>
+          </div>
+          <button class="btn-remove-file" (click)="eliminarArchivo(); $event.stopPropagation()">
+            ✕
+          </button>
+        </div>
+        
+        <input 
+          type="file" 
+          id="file-input"
+          accept="video/*,application/pdf"
+          (change)="onFileSelected($event)"
+          style="display: none;">
+      </div>
+
+      <!-- Formulario -->
+      <div class="form-group">
+        <label for="titulo">Título del Contenido</label>
+        <input 
+          type="text" 
+          id="titulo"
+          [(ngModel)]="formData.titulo"
+          placeholder="Ej: Business Model Canvas"
+          class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="categoria">Categoría</label>
+        <select 
+          id="categoria"
+          [(ngModel)]="formData.categoria"
+          class="form-control">
+          <option value="Pre-Incubacion">Pre-Incubación</option>
+          <option value="Incubadora">Incubadora</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="descripcion">Descripción</label>
+        <textarea 
+          id="descripcion"
+          [(ngModel)]="formData.descripcion"
+          placeholder="Ingresa un breve resumen del contenido"
+          rows="4"
+          class="form-control">
+        </textarea>
+      </div>
+
+      <button 
+        class="btn-upload"
+        (click)="subirContenido()"
+        [disabled]="subiendo || !formData.archivo || !formData.titulo.trim()">
+        <span *ngIf="subiendo">Subiendo...</span>
+        <span *ngIf="!subiendo">Subir Contenido</span>
+      </button>
+    </div>
+
+    <!-- Sección derecha: Contenido Existente -->
+    <div class="existing-section">
+      <div class="section-header">
+        <h2>Contenido Existente</h2>
+        <div class="categoria-filter">
+          <label for="filtro-categoria">Categoría:</label>
+          <select 
+            id="filtro-categoria"
+            class="filter-select"
+            [(ngModel)]="filtroCategoria"
+            (change)="onFiltroCategoriaChange()">
+            <option value="todas">Todas</option>
+            <option value="Pre-Incubacion">Pre-Incubación</option>
+            <option value="Incubadora">Incubadora</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="filters">
+        <button 
+          class="filter-btn"
+          [class.active]="filtroTipo === null"
+          (click)="onFiltroChange(null)">
+          Todos
+        </button>
+        <button 
+          class="filter-btn"
+          [class.active]="filtroTipo === 'video'"
+          (click)="onFiltroChange('video')">
+          Videos
+        </button>
+        <button 
+          class="filter-btn"
+          [class.active]="filtroTipo === 'pdf'"
+          (click)="onFiltroChange('pdf')">
+          PDFs
+        </button>
+      </div>
+
+      <!-- Tabla de contenidos -->
+      <div class="table-container">
+        <div *ngIf="cargando" class="loading">
+          <p>Cargando contenidos...</p>
+        </div>
+
+        <div *ngIf="!cargando && contenidosFiltrados.length === 0" class="empty-state">
+          <p>No hay contenido disponible</p>
+        </div>
+
+        <table *ngIf="!cargando && contenidosFiltrados.length > 0" class="content-table">
+          <thead>
+            <tr>
+              <th>Nombre del Archivo</th>
+              <th>Tipo</th>
+              <th>Fecha de Carga</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let contenido of contenidosFiltrados">
+              <td>
+                <div class="file-cell">
+                  <span class="file-icon-cell">{{ obtenerIconoTipo(contenido.tipo) }}</span>
+                  <div class="file-info-cell">
+                    <span class="file-name-cell">{{ contenido.nombreArchivo }}</span>
+                    <span class="file-title-cell">{{ contenido.titulo }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="type-badge" [class.video]="contenido.tipo === 'video'" [class.pdf]="contenido.tipo === 'pdf'">
+                  {{ contenido.tipo === 'video' ? 'Video' : 'PDF' }}
+                </span>
+              </td>
+              <td>{{ formatearFecha(contenido.fechaCarga) }}</td>
+              <td>
+                <div class="actions">
+                  <button 
+                    class="btn-action btn-edit"
+                    (click)="abrirModalEdicion(contenido)"
+                    [disabled]="procesando"
+                    title="Editar">
+                    ✏️
+                  </button>
+                  <button 
+                    class="btn-action btn-delete"
+                    (click)="eliminarContenido(contenido)"
+                    [disabled]="procesando"
+                    title="Eliminar">
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Edición -->
+  <div *ngIf="mostrarModalEdicion" class="modal-overlay" (click)="cerrarModalEdicion()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Editar Contenido</h3>
+        <button class="btn-close" (click)="cerrarModalEdicion()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-titulo">Título del Contenido</label>
+          <input 
+            type="text" 
+            id="edit-titulo"
+            [(ngModel)]="datosEdicion.titulo"
+            class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-categoria">Categoría</label>
+          <select 
+            id="edit-categoria"
+            [(ngModel)]="datosEdicion.categoria"
+            class="form-control">
+            <option value="Pre-Incubacion">Pre-Incubación</option>
+            <option value="Incubadora">Incubadora</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-descripcion">Descripción</label>
+          <textarea 
+            id="edit-descripcion"
+            [(ngModel)]="datosEdicion.descripcion"
+            rows="4"
+            class="form-control">
+          </textarea>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button 
+          class="btn btn-secondary" 
+          (click)="cerrarModalEdicion()"
+          [disabled]="procesando">
+          Cancelar
+        </button>
+        <button 
+          class="btn btn-primary" 
+          (click)="guardarEdicion()"
+          [disabled]="procesando">
+          <span *ngIf="procesando">Guardando...</span>
+          <span *ngIf="!procesando">Guardar Cambios</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

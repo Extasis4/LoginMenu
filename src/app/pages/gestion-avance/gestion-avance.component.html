@@ -1,0 +1,207 @@
+<div class="gestion-avance-container">
+  <div class="header">
+    <h1>Gestión de Avance</h1>
+    <p class="subtitle">Administra el progreso de los usuarios y certificaciones</p>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div class="filtros-section">
+    <div class="filtros-row">
+      <div class="filtro-grupo">
+        <label for="filtro-estado">Filtrar por estado:</label>
+        <select 
+          id="filtro-estado" 
+          [(ngModel)]="filtroEstado" 
+          (change)="onFiltroEstadoChange()"
+          class="select-filtro">
+          <option value="todos">Todos</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="en_mentoria">En Mentoría</option>
+          <option value="completada">Completada</option>
+          <option value="rechazada">Rechazada</option>
+        </select>
+      </div>
+      
+      <div class="filtro-grupo">
+        <label for="filtro-busqueda">Buscar:</label>
+        <input 
+          type="text" 
+          id="filtro-busqueda" 
+          [(ngModel)]="filtroBusqueda" 
+          (input)="onFiltroBusquedaChange()"
+          placeholder="Usuario o tema..."
+          class="input-busqueda">
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de usuarios -->
+  <div class="usuarios-section">
+    <h2>Lista de Usuarios</h2>
+    
+    <div *ngIf="cargandoUsuarios" class="loading">
+      <p>Cargando usuarios...</p>
+    </div>
+
+    <div *ngIf="!cargandoUsuarios && usuarios.length === 0" class="empty-state">
+      <p>No hay usuarios registrados</p>
+    </div>
+
+    <div *ngIf="!cargandoUsuarios && usuarios.length > 0" class="usuarios-grid">
+      <div 
+        *ngFor="let usuario of usuarios" 
+        class="usuario-card"
+        [class.selected]="usuarioSeleccionado?.id === usuario.id"
+        (click)="seleccionarUsuario(usuario)">
+        
+        <div class="usuario-header">
+          <h3>{{ usuario.nombre }}</h3>
+          <span class="badge badge-info">{{ usuario.certificadosObtenidos }} certificados</span>
+        </div>
+        
+        <p class="usuario-email">{{ usuario.email }}</p>
+        
+        <div class="temas-resumen">
+          <div class="tema-item" *ngFor="let tema of usuario.temas">
+            <div class="tema-info">
+              <span class="tema-nombre">{{ tema.nombre }}</span>
+              <span class="tema-categoria">{{ tema.categoria }}</span>
+            </div>
+            
+            <div class="tema-estado">
+              <span 
+                *ngIf="tema.aprendido" 
+                class="badge badge-success">
+                ✓ Aprendido
+              </span>
+              <span 
+                *ngIf="!tema.aprendido" 
+                class="badge badge-secondary">
+                En progreso
+              </span>
+            </div>
+
+            <!-- Mentorías -->
+            <div *ngIf="tema.requiereMentoria && tema.aprendido" class="mentorias-info">
+              <small>
+                Mentorías: {{ tema.mentoriasCompletadas }}/{{ tema.mentoriasRequeridas }}
+              </small>
+            </div>
+
+            <!-- Acciones -->
+            <div class="tema-acciones" *ngIf="tema.aprendido">
+              <button 
+                *ngIf="necesitaMentoria(tema)"
+                class="btn btn-warning btn-sm"
+                (click)="iniciarMentoria(usuario, tema); $event.stopPropagation()"
+                [disabled]="procesando">
+                Iniciar Mentoría
+              </button>
+              
+              <button 
+                *ngIf="puedeCertificar(tema)"
+                class="btn btn-success btn-sm"
+                (click)="abrirModalConfirmacion(usuario, tema); $event.stopPropagation()"
+                [disabled]="procesando">
+                Confirmar y Certificar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de certificaciones -->
+  <div class="certificaciones-section">
+    <h2>Certificaciones</h2>
+    
+    <div *ngIf="cargandoCertificaciones" class="loading">
+      <p>Cargando certificaciones...</p>
+    </div>
+
+    <div *ngIf="!cargandoCertificaciones && certificacionesFiltradas.length === 0" class="empty-state">
+      <p>No hay certificaciones que mostrar</p>
+    </div>
+
+    <div *ngIf="!cargandoCertificaciones && certificacionesFiltradas.length > 0" class="certificaciones-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Tema</th>
+            <th>Estado</th>
+            <th>Fecha Solicitud</th>
+            <th>Fecha Completada</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let certificacion of certificacionesFiltradas">
+            <td>{{ certificacion.usuarioNombre }}</td>
+            <td>{{ certificacion.temaNombre }}</td>
+            <td>
+              <span class="badge" [ngClass]="obtenerEstadoBadgeClass(certificacion.estado)">
+                {{ obtenerEstadoTexto(certificacion.estado) }}
+              </span>
+            </td>
+            <td>{{ formatearFecha(certificacion.fechaSolicitud) }}</td>
+            <td>{{ formatearFecha(certificacion.fechaCompletada) }}</td>
+            <td>
+              <button 
+                *ngIf="certificacion.estado === 'pendiente' || certificacion.estado === 'en_mentoria'"
+                class="btn btn-success btn-sm"
+                (click)="abrirModalDesdeCertificacion(certificacion)"
+                [disabled]="procesando">
+                Confirmar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div *ngIf="mostrarModalConfirmacion" class="modal-overlay" (click)="cerrarModalConfirmacion()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Confirmar Aprendizaje y Certificación</h3>
+        <button class="btn-close" (click)="cerrarModalConfirmacion()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <p><strong>Usuario:</strong> {{ usuarioConfirmar?.usuarioNombre }}</p>
+        <p><strong>Tema:</strong> {{ usuarioConfirmar?.temaNombre }}</p>
+        
+        <div class="form-group">
+          <label for="observaciones">Observaciones de la mentoría:</label>
+          <textarea 
+            id="observaciones"
+            [(ngModel)]="observacionesMentoria"
+            rows="4"
+            placeholder="Ingrese observaciones sobre la mentoría realizada..."
+            class="form-control">
+          </textarea>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button 
+          class="btn btn-secondary" 
+          (click)="cerrarModalConfirmacion()"
+          [disabled]="procesando">
+          Cancelar
+        </button>
+        <button 
+          class="btn btn-primary" 
+          (click)="confirmarAprendizaje()"
+          [disabled]="procesando">
+          <span *ngIf="procesando">Procesando...</span>
+          <span *ngIf="!procesando">Confirmar y Emitir Certificado</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

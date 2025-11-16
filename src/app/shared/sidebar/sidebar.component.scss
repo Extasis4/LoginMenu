@@ -21,23 +21,37 @@ $border-color: #1F2A38;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   overflow-y: auto;
   overflow-x: hidden;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
 
-  // Scrollbar personalizado
+  // Ocultar scrollbar pero mantener funcionalidad
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // IE y Edge
+
   &::-webkit-scrollbar {
-    width: 6px;
+    display: none; // Chrome, Safari y Opera
   }
 
-  &::-webkit-scrollbar-track {
-    background: $sidebar-bg;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: $item-bg;
-    border-radius: 3px;
-
-    &:hover {
-      background: $hover-bg;
+  &.closed {
+    @media (max-width: 768px) {
+      transform: translateX(-100%);
     }
+  }
+}
+
+.sidebar-overlay {
+  display: none;
+  
+  @media (max-width: 768px) {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(2px);
   }
 }
 
@@ -80,6 +94,13 @@ $border-color: #1F2A38;
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+  // Ocultar scrollbar pero mantener funcionalidad
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // IE y Edge
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome, Safari y Opera
+  }
 }
 
 .menu-list {
@@ -233,11 +254,10 @@ $border-color: #1F2A38;
 // Responsive
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
+    width: 280px;
+    max-width: 85vw;
     border-right: none;
-    border-bottom: 1px solid $border-color;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
   }
 
   .sidebar-header {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
@@ -17,6 +17,16 @@ interface MenuItem {
   styleUrl: './sidebar.component.scss'
 })
 export class SidebarComponent {
+  @Input() isOpen: boolean = true;
+  @Output() closeSidebar = new EventEmitter<void>();
+
+  get isMobile(): boolean {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  }
+
   menuItems: MenuItem[] = [
     {
       label: 'Panel',
@@ -29,19 +39,14 @@ export class SidebarComponent {
       icon: 'users'
     },
     {
-      label: 'Contenido',
-      route: '/contenido',
-      icon: 'content'
+      label: 'Gestionar Contenido',
+      route: '/gestion-contenido',
+      icon: 'file-text'
     },
     {
-      label: 'Reportes',
-      route: '/reportes',
-      icon: 'reports'
-    },
-    {
-      label: 'Ajustes',
-      route: '/ajustes',
-      icon: 'settings'
+      label: 'Gestionar Avance',
+      route: '/gestion-avance',
+      icon: 'check-circle'
     }
   ];
 
@@ -49,6 +54,13 @@ export class SidebarComponent {
 
   onLogout() {
     this.authService.logout();
+  }
+
+  onMenuClick() {
+    // Cerrar sidebar en móvil al hacer clic en un enlace
+    if (this.isMobile) {
+      this.closeSidebar.emit();
+    }
   }
 }
 
