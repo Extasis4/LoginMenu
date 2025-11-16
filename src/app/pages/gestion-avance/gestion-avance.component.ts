@@ -15,6 +15,10 @@ export class GestionAvanceComponent implements OnInit {
   usuarios: Usuario[] = [];
   certificaciones: Certificacion[] = [];
   certificacionesFiltradas: Certificacion[] = [];
+  certificacionesPaginadas: Certificacion[] = [];
+  paginaActual = 1;
+  tamPagina = 10;
+  totalPaginas = 0;
   usuarioSeleccionado: Usuario | null = null;
   certificacionSeleccionada: Certificacion | null = null;
   
@@ -22,6 +26,9 @@ export class GestionAvanceComponent implements OnInit {
   cargandoUsuarios = false;
   cargandoCertificaciones = false;
   procesando = false;
+  // Preview certificado
+  mostrarPreview = false;
+  previewUrl: string | null = null;
   
   // Filtros
   filtroEstado: 'todos' | 'pendiente' | 'en_mentoria' | 'completada' | 'rechazada' = 'todos';
@@ -30,7 +37,7 @@ export class GestionAvanceComponent implements OnInit {
   // Modal de confirmación
   mostrarModalConfirmacion = false;
   observacionesMentoria = '';
-  usuarioConfirmar: { usuarioId: string; usuarioNombre: string; temaId: string; temaNombre: string } | null = null;
+  usuarioConfirmar: { certificacionId?: string; usuarioId: string; usuarioNombre: string; temaId: string; temaNombre: string } | null = null;
 
   constructor(private gestionAvanceService: GestionAvanceService) {}
 
@@ -109,6 +116,7 @@ export class GestionAvanceComponent implements OnInit {
 
   abrirModalDesdeCertificacion(certificacion: Certificacion): void {
     this.usuarioConfirmar = {
+      certificacionId: certificacion.id,
       usuarioId: certificacion.usuarioId,
       usuarioNombre: certificacion.usuarioNombre,
       temaId: certificacion.temaId,
@@ -128,22 +136,70 @@ export class GestionAvanceComponent implements OnInit {
     if (!this.usuarioConfirmar) return;
 
     this.procesando = true;
-    this.gestionAvanceService.confirmarAprendizaje(
-      this.usuarioConfirmar.usuarioId,
-      this.usuarioConfirmar.temaId,
-      this.observacionesMentoria
-    ).subscribe({
-      next: (certificacion) => {
-        console.log('Aprendizaje confirmado:', certificacion);
-        this.cerrarModalConfirmacion();
-        this.cargarDatos(); // Recargar datos
-        this.procesando = false;
-      },
-      error: (error) => {
-        console.error('Error al confirmar aprendizaje:', error);
-        this.procesando = false;
-      }
-    });
+    if (!this.usuarioConfirmar.certificacionId) {
+      console.error('No hay certificacionId para actualizar.');
+      this.procesando = false;
+      return;
+    }
+    this.gestionAvanceService.actualizarCertificacionProgreso(this.usuarioConfirmar.certificacionId)
+      .subscribe({
+        next: (resp: any) => {
+          // Tras completar, mintear NFT para obtener tx/contract
+          const name = this.usuarioConfirmar!.usuarioNombre;
+          const topic = this.usuarioConfirmar!.temaNombre;
+          this.gestionAvanceService.mintSimple(name, topic).subscribe({
+            next: (mint: any) => {
+              const img = String(mint?.imageUri || '');
+              const upd = (arr: Certificacion[]) => {
+                const idx = arr.findIndex(c => c.id === this.usuarioConfirmar!.certificacionId);
+                if (idx >= 0) arr[idx] = { 
+                  ...arr[idx], 
+                  urlImage: img || arr[idx].urlImage, 
+                  backendStatus: 'completed',
+                  contractAddress: mint?.contractAddress ?? arr[idx].contractAddress,
+                  tokenId: mint?.tokenId ?? arr[idx].tokenId,
+                  txHash: mint?.txHash ?? arr[idx].txHash
+                };
+              };
+              upd(this.certificaciones);
+              upd(this.certificacionesFiltradas);
+              this.recalcularPaginacion();
+
+              if (img) {
+                const cid = img.replace(/^ipfs:\/\//, '');
+                this.previewUrl = `https://ipfs.io/ipfs/${cid}`;
+                this.mostrarPreview = true;
+              } else {
+                this.cargarDatos();
+              }
+              this.cerrarModalConfirmacion();
+              this.procesando = false;
+            },
+            error: (e) => {
+              console.error('Error al mintear NFT:', e);
+              // Aún así cerrar modal y refrescar
+              this.cerrarModalConfirmacion();
+              this.cargarDatos();
+              this.procesando = false;
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Error al confirmar aprendizaje:', error);
+          this.procesando = false;
+        }
+      });
+  }
+
+  abrirPreview(ipfsUri: string): void {
+    const cid = ipfsUri.replace(/^ipfs:\/\//, '');
+    this.previewUrl = `https://ipfs.io/ipfs/${cid}`;
+    this.mostrarPreview = true;
+  }
+
+  cerrarPreview(): void {
+    this.mostrarPreview = false;
+    this.previewUrl = null;
   }
 
   iniciarMentoria(usuario: Usuario, tema: Tema): void {
@@ -179,6 +235,8 @@ export class GestionAvanceComponent implements OnInit {
     }
 
     this.certificacionesFiltradas = filtradas;
+    this.paginaActual = 1;
+    this.recalcularPaginacion();
   }
 
   onFiltroEstadoChange(): void {
@@ -189,29 +247,26 @@ export class GestionAvanceComponent implements OnInit {
     this.aplicarFiltros();
   }
 
-  obtenerEstadoBadgeClass(estado: string): string {
-    switch (estado) {
-      case 'completada':
+  obtenerEstadoBadgeClass(backendStatus?: string): string {
+    switch (backendStatus) {
+      case 'completed':
         return 'badge-success';
-      case 'en_mentoria':
+      case 'in_progress':
         return 'badge-warning';
-      case 'pendiente':
+      case 'pending':
         return 'badge-info';
-      case 'rechazada':
-        return 'badge-danger';
       default:
         return 'badge-secondary';
     }
   }
 
-  obtenerEstadoTexto(estado: string): string {
+  obtenerEstadoTexto(backendStatus?: string): string {
     const estados: { [key: string]: string } = {
-      'pendiente': 'Pendiente',
-      'en_mentoria': 'En Mentoría',
-      'completada': 'Completada',
-      'rechazada': 'Rechazada'
+      'pending': 'Pendiente',
+      'in_progress': 'En progreso',
+      'completed': 'Completado'
     };
-    return estados[estado] || estado;
+    return estados[backendStatus || ''] || (backendStatus || '-');
   }
 
   formatearFecha(fecha: Date | undefined): string {
@@ -221,6 +276,28 @@ export class GestionAvanceComponent implements OnInit {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  private recalcularPaginacion(): void {
+    this.totalPaginas = Math.max(1, Math.ceil(this.certificacionesFiltradas.length / this.tamPagina));
+    if (this.paginaActual > this.totalPaginas) this.paginaActual = this.totalPaginas;
+    const inicio = (this.paginaActual - 1) * this.tamPagina;
+    const fin = inicio + this.tamPagina;
+    this.certificacionesPaginadas = this.certificacionesFiltradas.slice(inicio, fin);
+  }
+
+  paginaSiguiente(): void {
+    if (this.paginaActual < this.totalPaginas) {
+      this.paginaActual++;
+      this.recalcularPaginacion();
+    }
+  }
+
+  paginaAnterior(): void {
+    if (this.paginaActual > 1) {
+      this.paginaActual--;
+      this.recalcularPaginacion();
+    }
   }
 }
 

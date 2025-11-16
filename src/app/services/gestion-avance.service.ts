@@ -1,11 +1,13 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of, delay, map } from 'rxjs';
 import { Usuario, Tema, Certificacion } from '../models/usuario.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GestionAvanceService {
+  private readonly CERTIFICATIONS_API = 'https://api.childfound.online/api/certifications';
   // Datos falsos para desarrollo
   private usuariosFalsos: Usuario[] = [
     {
@@ -155,7 +157,7 @@ export class GestionAvanceService {
     }
   ];
 
-  constructor() { }
+  constructor(private http: HttpClient) { }
 
   /**
    * Obtiene la lista de usuarios con sus temas y estado de aprendizaje
@@ -184,7 +186,49 @@ export class GestionAvanceService {
    * @returns Observable con la lista de certificaciones
    */
   obtenerCertificaciones(): Observable<Certificacion[]> {
-    return of([...this.certificacionesFalsas]).pipe(delay(500));
+    // Consumir API real y mapear al modelo del front
+    return this.http.get<any[]>(this.CERTIFICATIONS_API).pipe(
+      map(items => (items || []).map((it): Certificacion => ({
+        id: it.id,
+        usuarioId: it.userId,
+        usuarioNombre: it.user?.name ?? it.userId,
+        temaId: it.topicId,
+        temaNombre: it.topic?.name ?? it.topicId,
+        // Mapear estados backend -> frontend
+        estado: it.status === 'completed' ? 'completada'
+              : it.status === 'in_progress' ? 'en_mentoria'
+              : 'pendiente',
+        backendStatus: it.status,
+        progressPercentage: it.progressPercentage,
+        urlImage: it.urlImage ?? null,
+        // La API no trae fechas; usamos placeholders seguros
+        fechaSolicitud: new Date(),
+        fechaCompletada: it.status === 'completed' ? new Date() : undefined,
+        // Observaciones no provistas por la API
+        observaciones: undefined
+      })))
+    );
+  }
+
+  /**
+   * Marca una certificación como completada (100% y status completed) en el backend
+   */
+  actualizarCertificacionProgreso(certificacionId: string): Observable<any> {
+    const url = `${this.CERTIFICATIONS_API}/${encodeURIComponent(certificacionId)}/progress`;
+    const body = {
+      progressPercentage: 100,
+      status: 'completed'
+    };
+    return this.http.patch(url, body);
+  }
+
+  /**
+   * Minta el certificado (usa DEFAULT_MINT_TO en el backend)
+   */
+  mintSimple(name: string, topic: string): Observable<any> {
+    const url = `${this.CERTIFICATIONS_API}/certificate/mint-simple`;
+    const body = { name, topic };
+    return this.http.post(url, body);
   }
 
   /**

@@ -28,5 +28,11 @@ export interface Certificacion {
   fechaSolicitud: Date;
   fechaCompletada?: Date;
   observaciones?: string;
+  backendStatus?: 'pending' | 'in_progress' | 'completed';
+  progressPercentage?: number;
+  urlImage?: string | null;
+  contractAddress?: string;
+  tokenId?: string;
+  txHash?: string;
 }
 

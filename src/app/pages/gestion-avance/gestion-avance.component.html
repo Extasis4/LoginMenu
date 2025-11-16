@@ -124,6 +124,19 @@
   <!-- Lista de certificaciones -->
   <div class="certificaciones-section">
     <h2>Certificaciones</h2>
+    <div style="margin: 8px 0 16px;">
+      <a href="https://sepolia.etherscan.io/address/0x08df59010c13dee53d9c03c089ffbe54595771ef" 
+         target="_blank" 
+         rel="noopener"
+         class="btn btn-primary"
+         style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:8px;">
+        <span style="font-weight:600;">Ver contrato en Etherscan</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3z"></path>
+          <path d="M5 5h5V3H3v7h2V5z"></path>
+        </svg>
+      </a>
+    </div>
     
     <div *ngIf="cargandoCertificaciones" class="loading">
       <p>Cargando certificaciones...</p>
@@ -146,28 +159,64 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let certificacion of certificacionesFiltradas">
+          <tr *ngFor="let certificacion of certificacionesPaginadas">
             <td>{{ certificacion.usuarioNombre }}</td>
             <td>{{ certificacion.temaNombre }}</td>
             <td>
-              <span class="badge" [ngClass]="obtenerEstadoBadgeClass(certificacion.estado)">
-                {{ obtenerEstadoTexto(certificacion.estado) }}
+              <span class="badge" [ngClass]="obtenerEstadoBadgeClass(certificacion.backendStatus)">
+                {{ obtenerEstadoTexto(certificacion.backendStatus) }}
               </span>
+              <div class="muted" style="font-size: 11px; margin-top: 2px;">
+                backend: {{ certificacion.backendStatus }} · {{ certificacion.progressPercentage || 0 }}%
+              </div>
             </td>
             <td>{{ formatearFecha(certificacion.fechaSolicitud) }}</td>
             <td>{{ formatearFecha(certificacion.fechaCompletada) }}</td>
             <td>
               <button 
-                *ngIf="certificacion.estado === 'pendiente' || certificacion.estado === 'en_mentoria'"
+                *ngIf="certificacion.backendStatus === 'pending' || certificacion.backendStatus === 'in_progress'"
                 class="btn btn-success btn-sm"
                 (click)="abrirModalDesdeCertificacion(certificacion)"
                 [disabled]="procesando">
                 Confirmar
               </button>
+              <button 
+                *ngIf="certificacion.urlImage" 
+                class="btn btn-primary btn-sm"
+                (click)="abrirPreview(certificacion.urlImage)">
+                Ver certificado
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
+
+      <div class="pagination-controls" style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+        <button class="btn btn-secondary btn-sm" (click)="paginaAnterior()" [disabled]="paginaActual === 1">
+          « Anterior
+        </button>
+        <span>Página {{ paginaActual }} de {{ totalPaginas }}</span>
+        <button class="btn btn-secondary btn-sm" (click)="paginaSiguiente()" [disabled]="paginaActual === totalPaginas">
+          Siguiente »
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de previsualización de certificado -->
+  <div *ngIf="mostrarPreview" class="modal-overlay" (click)="cerrarPreview()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Certificado</h3>
+        <button class="btn-close" (click)="cerrarPreview()">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; justify-content:center;">
+        <img *ngIf="previewUrl" [src]="previewUrl" alt="Certificado" style="max-width:100%; border-radius:8px;" />
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:8px;">
+        <a *ngIf="previewUrl" [href]="previewUrl" target="_blank" class="btn btn-secondary">Abrir en nueva pestaña</a>
+        <button class="btn btn-primary" (click)="cerrarPreview()">Cerrar</button>
+      </div>
     </div>
   </div>
 
