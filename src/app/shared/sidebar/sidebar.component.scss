@@ -1,0 +1,282 @@
+// Variables de color
+$sidebar-bg: #0E1A2B;
+$item-bg: #132235;
+$hover-bg: #1B2D45;
+$active-bg: #1F3A56;
+$text-color: #E5E9F0;
+$icon-color: #C5CED9;
+$border-color: #1F2A38;
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 280px;
+  background-color: $sidebar-bg;
+  border-right: 1px solid $border-color;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  // Scrollbar personalizado
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $sidebar-bg;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $item-bg;
+    border-radius: 3px;
+
+    &:hover {
+      background: $hover-bg;
+    }
+  }
+}
+
+.sidebar-header {
+  padding: 24px 20px;
+  border-bottom: 1px solid $border-color;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: $text-color;
+  letter-spacing: -0.5px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-item {
+  margin: 0;
+}
+
+.menu-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: $text-color;
+  text-decoration: none;
+  border-radius: 8px;
+  background-color: transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  font-size: 15px;
+  font-weight: 500;
+
+  &:hover {
+    background-color: $hover-bg;
+    color: $text-color;
+  }
+
+  &.active {
+    background-color: $active-bg;
+    color: #D4AF37;
+
+    .menu-icon {
+      color: #D4AF37;
+    }
+  }
+}
+
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: $icon-color;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.menu-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.sidebar-footer {
+  padding: 20px 16px;
+  border-top: 1px solid $border-color;
+  margin-top: auto;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: $item-bg;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $hover-bg;
+  }
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1B2D45 0%, #1F3A56 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $text-color;
+  flex-shrink: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-color;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 12px;
+  color: rgba($text-color, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: $icon-color;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background-color: $hover-bg;
+    color: $text-color;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid $border-color;
+  }
+
+  .sidebar-header {
+    padding: 16px 20px;
+  }
+
+  .sidebar-nav {
+    padding: 12px 8px;
+  }
+
+  .menu-link {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .sidebar-footer {
+    padding: 16px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-text {
+    font-size: 18px;
+  }
+
+  .menu-link {
+    padding: 10px 12px;
+  }
+
+  .user-profile {
+    padding: 10px;
+  }
+
+  .user-name {
+    font-size: 13px;
+  }
+
+  .user-email {
+    font-size: 11px;
+  }
+}
+
